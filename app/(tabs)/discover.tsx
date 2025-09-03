@@ -77,9 +77,9 @@ export default function DiscoverScreen() {
             <Text style={styles.headerTitle}>Discover</Text>
             <Text style={styles.headerSubtitle}>Curated luxury experiences</Text>
           </View>
-          <TouchableOpacity style={styles.headerAction}>
-            <Globe size={20} color="#000000" />
-          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerAction} onPress={() => console.log('Header action pressed')}>
+          <Globe size={20} color="#000000" />
+        </TouchableOpacity>
         </View>
 
         <View style={styles.searchContainer}>
@@ -103,14 +103,14 @@ export default function DiscoverScreen() {
           
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
             {trendingDestinations.map((destination, index) => (
-              <TouchableOpacity key={index} style={styles.trendingCard}>
-                <Text style={styles.destinationEmoji}>{destination.image}</Text>
-                <Text style={styles.destinationName}>{destination.name}</Text>
-                <Text style={styles.destinationType}>{destination.type}</Text>
-                <View style={styles.trendBadge}>
-                  <Text style={styles.trendText}>{destination.trend}</Text>
-                </View>
-              </TouchableOpacity>
+              <TouchableOpacity key={index} style={styles.trendingCard} onPress={() => console.log(`Trending destination selected: ${destination.name}`)}>
+              <Text style={styles.destinationEmoji}>{destination.image}</Text>
+              <Text style={styles.destinationName}>{destination.name}</Text>
+              <Text style={styles.destinationType}>{destination.type}</Text>
+              <View style={styles.trendBadge}>
+                <Text style={styles.trendText}>{destination.trend}</Text>
+              </View>
+            </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
@@ -123,7 +123,7 @@ export default function DiscoverScreen() {
           
           <View style={styles.categoriesGrid}>
             {luxuryCategories.map((category, index) => (
-              <TouchableOpacity key={index} style={styles.categoryCard}>
+              <TouchableOpacity key={index} style={styles.categoryCard} onPress={() => console.log(`Category selected: ${category.name}`)}>
                 <View style={[styles.categoryIcon, { backgroundColor: `${category.color}15` }]}>
                   <category.icon size={24} color={category.color} />
                 </View>
@@ -160,7 +160,7 @@ export default function DiscoverScreen() {
               
               <View style={styles.experienceFooter}>
                 <Text style={styles.experiencePrice}>{experience.price}</Text>
-                <TouchableOpacity style={styles.exploreButton}>
+                <TouchableOpacity style={styles.exploreButton} onPress={() => console.log(`Explore experience: ${experience.title}`)}>
                   <Text style={styles.exploreButtonText}>Explore</Text>
                 </TouchableOpacity>
               </View>

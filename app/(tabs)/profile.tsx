@@ -16,24 +16,24 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
         
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => console.log('Settings pressed')}>
           <Settings size={20} color="#666" />
           <Text style={styles.menuText}>Settings</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => console.log('Notifications pressed')}>
           <Bell size={20} color="#666" />
           <Text style={styles.menuText}>Notifications</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => console.log('Help & Support pressed')}>
           <HelpCircle size={20} color="#666" />
           <Text style={styles.menuText}>Help & Support</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <TouchableOpacity style={[styles.menuItem, styles.logoutItem]}>
+        <TouchableOpacity style={[styles.menuItem, styles.logoutItem]} onPress={() => console.log('Sign Out pressed')}>
           <LogOut size={20} color="#ff4444" />
           <Text style={[styles.menuText, styles.logoutText]}>Sign Out</Text>
         </TouchableOpacity>

@@ -96,7 +96,7 @@ export default function FavoritesScreen() {
             <Text style={styles.headerTitle}>Favorites</Text>
             <Text style={styles.headerSubtitle}>Your saved luxury experiences</Text>
           </View>
-          <TouchableOpacity style={styles.headerAction}>
+          <TouchableOpacity style={styles.headerAction} onPress={() => console.log('Filter favorites pressed')}>
             <Filter size={20} color="#000000" />
           </TouchableOpacity>
         </View>
@@ -130,7 +130,7 @@ export default function FavoritesScreen() {
               const typeColor = getTypeColor(favorite.type);
               
               return (
-                <TouchableOpacity key={favorite.id} style={styles.favoriteCard}>
+                <TouchableOpacity key={favorite.id} style={styles.favoriteCard} onPress={() => console.log(`Favorite selected: ${favorite.name}`)}>
                   <View style={styles.favoriteHeader}>
                     <View style={[styles.favoriteIcon, { backgroundColor: `${typeColor}15` }]}>
                       <IconComponent size={20} color={typeColor} />
@@ -157,7 +157,7 @@ export default function FavoritesScreen() {
 
                   <View style={styles.favoriteFooter}>
                     <Text style={styles.favoritePrice}>{favorite.price}</Text>
-                    <TouchableOpacity style={styles.bookButton}>
+                    <TouchableOpacity style={styles.bookButton} onPress={() => console.log(`Book now: ${favorite.name}`)}>
                       <Text style={styles.bookButtonText}>Book Now</Text>
                     </TouchableOpacity>
                   </View>
@@ -172,7 +172,7 @@ export default function FavoritesScreen() {
             <Text style={styles.emptyDescription}>
               Start exploring luxury experiences and save your favorites here
             </Text>
-            <TouchableOpacity style={styles.exploreButton}>
+            <TouchableOpacity style={styles.exploreButton} onPress={() => console.log('Explore now pressed')}>
               <Text style={styles.exploreButtonText}>Explore Now</Text>
             </TouchableOpacity>
           </View>

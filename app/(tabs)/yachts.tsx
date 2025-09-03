@@ -85,15 +85,15 @@ export default function YachtsScreen() {
           </View>
 
           <View style={styles.quickFilters}>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity style={styles.filterButton} onPress={() => console.log('Destination filter pressed')}>
               <MapPin size={16} color="#D4AF37" />
               <Text style={styles.filterButtonText}>Destination</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity style={styles.filterButton} onPress={() => console.log('Dates filter pressed')}>
               <Calendar size={16} color="#D4AF37" />
               <Text style={styles.filterButtonText}>Dates</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity style={styles.filterButton} onPress={() => console.log('Guests filter pressed')}>
               <Users size={16} color="#D4AF37" />
               <Text style={styles.filterButtonText}>Guests</Text>
             </TouchableOpacity>
@@ -104,7 +104,7 @@ export default function YachtsScreen() {
           <Text style={styles.sectionTitle}>Popular Destinations</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {destinations.map((destination, index) => (
-              <TouchableOpacity key={index} style={styles.destinationCard}>
+              <TouchableOpacity key={index} style={styles.destinationCard} onPress={() => console.log(`Destination selected: ${destination}`)}>
                 <Text style={styles.destinationText}>{destination}</Text>
               </TouchableOpacity>
             ))}
@@ -115,7 +115,7 @@ export default function YachtsScreen() {
           <Text style={styles.sectionTitle}>Yacht Categories</Text>
           
           {yachtCategories.map((category) => (
-            <TouchableOpacity key={category.id} style={styles.categoryCard}>
+            <TouchableOpacity key={category.id} style={styles.categoryCard} onPress={() => console.log(`Yacht category selected: ${category.name}`)}>
               <View style={styles.categoryHeader}>
                 <Ship size={24} color="#D4AF37" />
                 <Text style={styles.categoryName}>{category.name}</Text>
@@ -139,7 +139,7 @@ export default function YachtsScreen() {
 
               <View style={styles.categoryFooter}>
                 <Text style={styles.categoryPrice}>{category.price}</Text>
-                <TouchableOpacity style={styles.viewButton}>
+                <TouchableOpacity style={styles.viewButton} onPress={() => console.log(`View yachts for: ${category.name}`)}>
                   <Text style={styles.viewButtonText}>View Yachts</Text>
                 </TouchableOpacity>
               </View>
@@ -150,22 +150,22 @@ export default function YachtsScreen() {
         <View style={styles.amenitiesSection}>
           <Text style={styles.sectionTitle}>Yacht Amenities</Text>
           <View style={styles.amenitiesGrid}>
-            <TouchableOpacity style={styles.amenityItem}>
+            <TouchableOpacity style={styles.amenityItem} onPress={() => console.log('Water Toys amenity selected')}>
               <Anchor size={20} color="#D4AF37" />
               <Text style={styles.amenityTitle}>Water Toys</Text>
               <Text style={styles.amenityDescription}>Jet skis, diving gear, kayaks</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.amenityItem}>
+            <TouchableOpacity style={styles.amenityItem} onPress={() => console.log('Fine Dining amenity selected')}>
               <Text style={styles.amenityIcon}>🍽️</Text>
               <Text style={styles.amenityTitle}>Fine Dining</Text>
               <Text style={styles.amenityDescription}>Private chef & sommelier</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.amenityItem}>
+            <TouchableOpacity style={styles.amenityItem} onPress={() => console.log('Wellness amenity selected')}>
               <Text style={styles.amenityIcon}>🧘</Text>
               <Text style={styles.amenityTitle}>Wellness</Text>
               <Text style={styles.amenityDescription}>Spa, gym, yoga deck</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.amenityItem}>
+            <TouchableOpacity style={styles.amenityItem} onPress={() => console.log('Entertainment amenity selected')}>
               <Text style={styles.amenityIcon}>🎵</Text>
               <Text style={styles.amenityTitle}>Entertainment</Text>
               <Text style={styles.amenityDescription}>Cinema, nightclub, DJ booth</Text>

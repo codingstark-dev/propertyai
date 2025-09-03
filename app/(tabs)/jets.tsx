@@ -86,15 +86,15 @@ export default function JetsScreen() {
           </View>
 
           <View style={styles.quickFilters}>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity style={styles.filterButton} onPress={() => console.log('Route filter pressed')}>
               <MapPin size={16} color="#D4AF37" />
               <Text style={styles.filterButtonText}>Route</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity style={styles.filterButton} onPress={() => console.log('Dates filter pressed')}>
               <Calendar size={16} color="#D4AF37" />
               <Text style={styles.filterButtonText}>Dates</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity style={styles.filterButton} onPress={() => console.log('Passengers filter pressed')}>
               <Users size={16} color="#D4AF37" />
               <Text style={styles.filterButtonText}>Passengers</Text>
             </TouchableOpacity>
@@ -105,7 +105,7 @@ export default function JetsScreen() {
           <Text style={styles.sectionTitle}>Popular Routes</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {quickSearches.map((route, index) => (
-              <TouchableOpacity key={index} style={styles.quickSearchItem}>
+              <TouchableOpacity key={index} style={styles.quickSearchItem} onPress={() => console.log(`Quick search: ${route}`)}>
                 <Text style={styles.quickSearchText}>{route}</Text>
               </TouchableOpacity>
             ))}
@@ -116,7 +116,7 @@ export default function JetsScreen() {
           <Text style={styles.sectionTitle}>Aircraft Categories</Text>
           
           {jetCategories.map((category) => (
-            <TouchableOpacity key={category.id} style={styles.categoryCard}>
+            <TouchableOpacity key={category.id} style={styles.categoryCard} onPress={() => console.log(`Category selected: ${category.name}`)}>
               <View style={styles.categoryHeader}>
                 <Plane size={24} color="#D4AF37" />
                 <Text style={styles.categoryName}>{category.name}</Text>
@@ -140,7 +140,7 @@ export default function JetsScreen() {
 
               <View style={styles.categoryFooter}>
                 <Text style={styles.categoryPrice}>{category.price}</Text>
-                <TouchableOpacity style={styles.viewButton}>
+                <TouchableOpacity style={styles.viewButton} onPress={() => console.log(`View aircraft for: ${category.name}`)}>
                   <Text style={styles.viewButtonText}>View Aircraft</Text>
                 </TouchableOpacity>
               </View>
@@ -151,19 +151,19 @@ export default function JetsScreen() {
         <View style={styles.servicesSection}>
           <Text style={styles.sectionTitle}>Additional Services</Text>
           <View style={styles.servicesGrid}>
-            <TouchableOpacity style={styles.serviceItem}>
+            <TouchableOpacity style={styles.serviceItem} onPress={() => console.log('Ground Transportation selected')}>
               <Text style={styles.serviceTitle}>Ground Transportation</Text>
               <Text style={styles.serviceDescription}>Luxury car & helicopter transfers</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.serviceItem}>
+            <TouchableOpacity style={styles.serviceItem} onPress={() => console.log('Catering selected')}>
               <Text style={styles.serviceTitle}>Catering</Text>
               <Text style={styles.serviceDescription}>Michelin-star dining at altitude</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.serviceItem}>
+            <TouchableOpacity style={styles.serviceItem} onPress={() => console.log('Concierge selected')}>
               <Text style={styles.serviceTitle}>Concierge</Text>
               <Text style={styles.serviceDescription}>24/7 travel coordination</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.serviceItem}>
+            <TouchableOpacity style={styles.serviceItem} onPress={() => console.log('Wi-Fi & Entertainment selected')}>
               <Text style={styles.serviceTitle}>Wi-Fi & Entertainment</Text>
               <Text style={styles.serviceDescription}>Stay connected in the sky</Text>
             </TouchableOpacity>

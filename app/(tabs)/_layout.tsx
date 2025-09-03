@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Bot, Sparkles, Heart, User } from 'lucide-react-native';
+import { Bot, Sparkles, Heart, User, MessageSquare } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -49,6 +49,15 @@ export default function TabLayout() {
           title: 'Favorites',
           tabBarIcon: ({ size, color }) => (
             <Heart size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="generative-prompts"
+        options={{
+          title: 'Prompts',
+          tabBarIcon: ({ size, color }) => (
+            <MessageSquare size={size} color={color} />
           ),
         }}
       />

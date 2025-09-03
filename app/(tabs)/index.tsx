@@ -31,6 +31,7 @@ import {
   Sparkles,
   Heart
 } from 'lucide-react-native';
+import { getAIResponse, getLuxuryTravelResponse } from './generative-prompts';
 
 const { width } = Dimensions.get('window');
 
@@ -39,7 +40,7 @@ interface Message {
   text?: string;
   isUser: boolean;
   timestamp: Date;
-  component?: 'quick-start' | 'jet-search' | 'yacht-search' | 'villa-search' | 'booking-card' | 'payment-flow' | 'confirmation' | 'preference-intake' | 'recommendations' | 'comparison' | 'itinerary';
+  component?: 'quick-start' | 'jet-search' | 'yacht-search' | 'villa-search' | 'booking-card' | 'payment-flow' | 'confirmation' | 'preference-intake' | 'recommendations' | 'comparison' | 'itinerary' | 'generative-prompts' | 'trip-planner' | 'destination-explorer' | 'booking-status' | 'weather-alerts' | 'concierge-services';
   data?: any;
   context?: {
     sessionId: string;
@@ -106,6 +107,17 @@ export default function ChatScreen() {
         conversationHistory: [],
       },
     },
+    {
+      id: '3',
+      component: 'generative-prompts',
+      isUser: false,
+      timestamp: new Date(),
+      context: {
+        sessionId: conversationContext.sessionId,
+        preferences: conversationContext.preferences,
+        conversationHistory: [],
+      },
+    },
   ]);
   const [inputText, setInputText] = useState('');
   
@@ -137,7 +149,7 @@ export default function ChatScreen() {
     }).start();
   }, []);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (inputText.trim()) {
       const userMessage: Message = {
         id: Date.now().toString(),
@@ -157,11 +169,54 @@ export default function ChatScreen() {
       setInputText('');
       setIsTyping(true);
 
+      // Check recent conversation history for context
+      const recentMessages = conversationContext.conversationHistory.slice(-5).map(m => m.text || '').join(' ').toLowerCase();
+      const hasYachtContext = recentMessages.includes('yacht') || recentMessages.includes('boat') || recentMessages.includes('charter');
+      const hasJetContext = recentMessages.includes('jet') || recentMessages.includes('flight') || recentMessages.includes('fly');
+      const hasVillaContext = recentMessages.includes('villa') || recentMessages.includes('house') || recentMessages.includes('stay');
+      
+      // Check if this looks like a date input (common patterns)
+      const isDateInput = /\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|\d{1,2}(st|nd|rd|th)\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(query);
+      const isBookingIntent = query.includes('book') || query.includes('reserve') || query.includes('charter');
+
       setTimeout(() => {
         setIsTyping(false);
         let aiResponse: Message;
 
-        if (query.includes('jet') || query.includes('flight') || query.includes('fly')) {
+        // Handle date inputs in context of recent booking conversations
+        if (isDateInput && (hasYachtContext || hasJetContext || hasVillaContext)) {
+          let serviceType = hasYachtContext ? 'yacht' : hasJetContext ? 'jet' : 'villa';
+          aiResponse = {
+            id: (Date.now() + 1).toString(),
+            text: `Perfect! I have your date as ${inputText}. To complete your ${serviceType} booking, I'll need a few more details. Let me set up the booking form for you.`,
+            isUser: false,
+            timestamp: new Date(),
+            context: {
+              sessionId: conversationContext.sessionId,
+              preferences: conversationContext.preferences,
+              conversationHistory: conversationContext.conversationHistory.map(m => m.text || ''),
+            },
+          };
+          setMessages(prev => [...prev, aiResponse]);
+          addToConversationHistory(aiResponse);
+
+          setTimeout(() => {
+            const searchComponent: Message = {
+              id: (Date.now() + 2).toString(),
+              component: serviceType === 'yacht' ? 'yacht-search' : serviceType === 'jet' ? 'jet-search' : 'villa-search',
+              isUser: false,
+              timestamp: new Date(),
+              context: {
+                sessionId: conversationContext.sessionId,
+                preferences: conversationContext.preferences,
+                conversationHistory: conversationContext.conversationHistory.map(m => m.text || ''),
+              },
+            };
+            setMessages(prev => [...prev, searchComponent]);
+            addToConversationHistory(searchComponent);
+          }, 1000);
+
+        } else if (query.includes('jet') || query.includes('flight') || query.includes('fly')) {
           aiResponse = {
             id: (Date.now() + 1).toString(),
             text: 'Let me find the perfect private jet for your journey. I\'ll need a few details to show you the best options.',
@@ -192,10 +247,11 @@ export default function ChatScreen() {
             addToConversationHistory(jetSearch);
           }, 1000);
 
-        } else if (query.includes('yacht') || query.includes('boat') || query.includes('charter')) {
+        } else if (query.includes('yacht') || query.includes('boat') || query.includes('charter') || query.includes('sailing')) {
+          const bookingText = isBookingIntent ? 'Perfect! I\'ll help you book the ideal yacht charter.' : 'Excellent! I\'ll help you find the perfect yacht charter.';
           aiResponse = {
             id: (Date.now() + 1).toString(),
-            text: 'Excellent! I\'ll help you find the perfect yacht charter. Let me create a personalized search for you.',
+            text: `${bookingText} Let me create a personalized search for you.`,
             isUser: false,
             timestamp: new Date(),
             context: {
@@ -254,10 +310,10 @@ export default function ChatScreen() {
             addToConversationHistory(villaSearch);
           }, 1000);
 
-        } else {
+        } else if (query.includes('help') || query.includes('assist') || query.includes('options') || query.includes('what can') || query.includes('how can')) {
           aiResponse = {
             id: (Date.now() + 1).toString(),
-            text: 'I\'m here to help with all your luxury travel needs. Here are some ways I can assist you:',
+            text: 'I can help you with various luxury travel needs. Here are some common requests I can assist with:',
             isUser: false,
             timestamp: new Date(),
             context: {
@@ -270,9 +326,9 @@ export default function ChatScreen() {
           addToConversationHistory(aiResponse);
 
           setTimeout(() => {
-            const quickStart: Message = {
+            const generativePrompts: Message = {
               id: (Date.now() + 2).toString(),
-              component: 'quick-start',
+              component: 'generative-prompts',
               isUser: false,
               timestamp: new Date(),
               context: {
@@ -281,9 +337,87 @@ export default function ChatScreen() {
                 conversationHistory: conversationContext.conversationHistory.map(m => m.text || ''),
               },
             };
-            setMessages(prev => [...prev, quickStart]);
-            addToConversationHistory(quickStart);
+            setMessages(prev => [...prev, generativePrompts]);
+            addToConversationHistory(generativePrompts);
           }, 1000);
+
+        } else {
+          // Enhanced fallback handling with better context awareness using AI response
+          const { getAIResponse } = require('./generative-prompts');
+          
+          // Check if this might be a follow-up to a recent booking conversation
+          const recentMessages = conversationContext.conversationHistory.slice(-3);
+          const hasRecentBookingContext = recentMessages.some(msg => 
+            msg.text && (
+              msg.text.toLowerCase().includes('book') ||
+              msg.text.toLowerCase().includes('charter') ||
+              msg.text.toLowerCase().includes('find') ||
+              msg.text.toLowerCase().includes('search')
+            )
+          );
+          
+          // Check if input looks like unclear or incomplete information
+          const isUnclearInput = query.length < 20 && (
+            /^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(query.trim()) || // Date format
+            query.split(' ').length <= 3 || // Very short input
+            /^[a-zA-Z]{1,10}$/.test(query.trim()) // Single word
+          );
+          
+          let fallbackText = 'I\'m here to help with all your luxury travel needs. Here are some ways I can assist you:';
+          let shouldShowQuickStart = true;
+          
+          if (hasRecentBookingContext && isUnclearInput) {
+            fallbackText = 'I need a bit more information to help you with your booking. Could you please provide more details about your travel preferences, such as your destination, dates, and number of guests?';
+            shouldShowQuickStart = false;
+          } else if (isUnclearInput) {
+            fallbackText = 'Please clarify your request. I need more information to assist you with luxury travel options. Are you looking for travel ideas for a specific date, or is there something else I can help you with?';
+            shouldShowQuickStart = false;
+          } else {
+            // Use AI response with conversation history for better context understanding
+            try {
+              // For now, use a simple fallback while we fix the async issue
+              fallbackText = 'Let me help you with that. Could you provide more details about what you\'re looking for?';
+              shouldShowQuickStart = false;
+              
+              // TODO: Implement proper async handling for AI responses
+              // This will require restructuring the message flow
+            } catch (error) {
+              console.log('AI response fallback:', error);
+              // Keep default fallback text
+            }
+          }
+          
+          aiResponse = {
+            id: (Date.now() + 1).toString(),
+            text: fallbackText,
+            isUser: false,
+            timestamp: new Date(),
+            context: {
+              sessionId: conversationContext.sessionId,
+              preferences: conversationContext.preferences,
+              conversationHistory: conversationContext.conversationHistory.map(m => m.text || ''),
+            },
+          };
+          setMessages(prev => [...prev, aiResponse]);
+          addToConversationHistory(aiResponse);
+
+          if (shouldShowQuickStart) {
+            setTimeout(() => {
+              const quickStart: Message = {
+                id: (Date.now() + 2).toString(),
+                component: 'quick-start',
+                isUser: false,
+                timestamp: new Date(),
+                context: {
+                  sessionId: conversationContext.sessionId,
+                  preferences: conversationContext.preferences,
+                  conversationHistory: conversationContext.conversationHistory.map(m => m.text || ''),
+                },
+              };
+              setMessages(prev => [...prev, quickStart]);
+              addToConversationHistory(quickStart);
+            }, 1000);
+          }
         }
       }, 1500);
 
@@ -319,7 +453,7 @@ export default function ChatScreen() {
         break;
       default:
         setInputText(action);
-        setTimeout(() => sendMessage(), 100);
+        setTimeout(async () => await sendMessage(), 100);
         return;
     }
     
@@ -534,105 +668,188 @@ export default function ChatScreen() {
     </View>
   );
 
-  const renderJetSearch = () => (
-    <View style={styles.generativeContainer}>
-      <View style={styles.searchHeader}>
-        <Plane size={24} color="#000000" />
-        <Text style={styles.searchTitle}>Private Jet Search</Text>
-      </View>
-      
-      <View style={styles.searchForm}>
-        <View style={styles.formRow}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>From</Text>
-            <View style={styles.modernInput}>
-              <MapPin size={16} color="#666666" />
-              <Text style={styles.inputValue}>New York (TEB)</Text>
-            </View>
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>To</Text>
-            <View style={styles.modernInput}>
-              <MapPin size={16} color="#666666" />
-              <Text style={styles.inputValue}>Miami (OPF)</Text>
-            </View>
-          </View>
+  const renderJetSearch = (data?: any) => {
+    // Determine search context from recent messages
+    const recentMessages = messages.slice(-5).map(m => m.text || '').join(' ').toLowerCase();
+    
+    // Check for specific route contexts
+    const isRiyadhToParis = recentMessages.includes('riyadh') && recentMessages.includes('paris');
+    const isDubaiToLondon = recentMessages.includes('dubai') && recentMessages.includes('london');
+    const isDubaiToRiyadh = recentMessages.includes('dubai') && recentMessages.includes('riyadh') && recentMessages.includes('shareable empty leg');
+    const isCostEffective = recentMessages.includes('cost-effective') || recentMessages.includes('cost effective');
+    
+    // Dynamic route and passenger data
+    let fromCity = 'New York (TEB)';
+    let toCity = 'Miami (OPF)';
+    let passengers = '4 passengers';
+    let departureTime = 'Tomorrow, 2:00 PM';
+    let jetOptions: Array<{
+       name: string;
+       category: string;
+       capacity: string;
+       price: string;
+       duration: string;
+       available: boolean;
+       badge?: string;
+     }> = [
+       { name: 'Gulfstream G650', category: 'Ultra Long Range', capacity: '14 pax', price: '$18,500', duration: '2h 45m', available: true },
+       { name: 'Citation X+', category: 'Super Mid-Size', capacity: '8 pax', price: '$12,800', duration: '2h 55m', available: true },
+       { name: 'Falcon 7X', category: 'Heavy Jet', capacity: '12 pax', price: '$15,200', duration: '2h 50m', available: false },
+     ];
+    
+    // Update based on context
+    if (isRiyadhToParis) {
+      fromCity = 'Riyadh (RUH)';
+      toCity = 'Paris (LBG)';
+      passengers = '2 passengers';
+      departureTime = 'Friday, 10:00 AM';
+      jetOptions = [
+        { name: 'Citation XLS+', category: 'Light Jet', capacity: '8 pax', price: '$32,500', duration: '6h 15m', available: true, badge: 'BEST VALUE' },
+        { name: 'Hawker 800XP', category: 'Mid-Size', capacity: '8 pax', price: '$38,900', duration: '6h 05m', available: true, badge: 'COMFORT' },
+        { name: 'Challenger 300', category: 'Super Mid-Size', capacity: '9 pax', price: '$28,500', duration: '5h 55m', available: true, badge: 'EMPTY LEG' },
+      ];
+    } else if (isDubaiToLondon) {
+      fromCity = 'Dubai (DXB)';
+      toCity = 'London (LHR)';
+      passengers = '6 passengers';
+      departureTime = 'Friday, 2:00 PM';
+      jetOptions = [
+        { name: 'Challenger 350', category: 'Super Mid-Size', capacity: '10 pax', price: '$48,500', duration: '6h 30m', available: true },
+        { name: 'Citation Longitude', category: 'Super Mid-Size', capacity: '8 pax', price: '$52,000', duration: '6h 30m', available: true },
+        { name: 'Gulfstream G280', category: 'Mid-Size', capacity: '8 pax', price: '$55,800', duration: '6h 30m', available: false },
+      ];
+    } else if (isDubaiToRiyadh) {
+      fromCity = 'Dubai (DXB)';
+      toCity = 'Riyadh (RUH)';
+      passengers = 'Shared seating';
+      departureTime = 'This week';
+      jetOptions = [
+        { name: 'Gulfstream G650', category: 'Ultra Long Range', capacity: '2 seats available', price: '$8,500/seat', duration: '1h 45m', available: true, badge: 'TUESDAY' },
+        { name: 'Global 6000', category: 'Ultra Long Range', capacity: '3 seats available', price: '$9,200/seat', duration: '1h 50m', available: true, badge: 'THURSDAY' },
+        { name: 'Falcon 7X', category: 'Heavy Jet', capacity: '4 seats available', price: '$8,800/seat', duration: '1h 55m', available: true, badge: 'SATURDAY' },
+      ];
+    }
+    
+    return (
+      <View style={styles.generativeContainer}>
+        <View style={styles.searchHeader}>
+          <Plane size={24} color="#000000" />
+          <Text style={styles.searchTitle}>{isDubaiToRiyadh ? 'Shareable Empty Legs' : 'Private Jet Options'}</Text>
         </View>
-
-        <View style={styles.formRow}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Departure</Text>
-            <View style={styles.modernInput}>
-              <Calendar size={16} color="#666666" />
-              <Text style={styles.inputValue}>Tomorrow, 2:00 PM</Text>
-            </View>
-          </View>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Passengers</Text>
-            <View style={styles.modernInput}>
-              <Users size={16} color="#666666" />
-              <Text style={styles.inputValue}>4 passengers</Text>
-            </View>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.searchButton}>
-          <Text style={styles.searchButtonText}>Search Available Jets</Text>
-          <ArrowRight size={16} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.jetResults}>
-        <Text style={styles.resultsTitle}>Available Aircraft</Text>
         
-        {[
-          { name: 'Gulfstream G650', category: 'Ultra Long Range', capacity: '14 pax', price: '$18,500', duration: '2h 45m', available: true },
-          { name: 'Citation X+', category: 'Super Mid-Size', capacity: '8 pax', price: '$12,800', duration: '2h 55m', available: true },
-          { name: 'Falcon 7X', category: 'Heavy Jet', capacity: '12 pax', price: '$15,200', duration: '2h 50m', available: false },
-        ].map((jet, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.resultCard, !jet.available && styles.unavailableCard]}
-            onPress={() => jet.available && handleBookingSelect('jet', jet)}
-            disabled={!jet.available}
-          >
-            <View style={styles.resultHeader}>
-              <View>
-                <Text style={styles.resultName}>{jet.name}</Text>
-                <Text style={styles.resultCategory}>{jet.category}</Text>
+        <View style={styles.searchForm}>
+          <View style={styles.formRow}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>From</Text>
+              <View style={styles.modernInput}>
+                <MapPin size={16} color="#666666" />
+                <Text style={styles.inputValue}>{fromCity}</Text>
               </View>
-              <View style={styles.resultStatus}>
-                {jet.available ? (
-                  <View style={styles.availableBadge}>
-                    <Text style={styles.availableText}>Available</Text>
-                  </View>
-                ) : (
-                  <View style={styles.unavailableBadge}>
-                    <Text style={styles.unavailableText}>Booked</Text>
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>To</Text>
+              <View style={styles.modernInput}>
+                <MapPin size={16} color="#666666" />
+                <Text style={styles.inputValue}>{toCity}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Departure</Text>
+              <View style={styles.modernInput}>
+                <Calendar size={16} color="#666666" />
+                <Text style={styles.inputValue}>{departureTime}</Text>
+              </View>
+            </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Passengers</Text>
+              <View style={styles.modernInput}>
+                <Users size={16} color="#666666" />
+                <Text style={styles.inputValue}>{passengers}</Text>
+              </View>
+            </View>
+          </View>
+
+          {isRiyadhToParis && (
+            <View style={styles.formRow}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Return</Text>
+                <View style={styles.modernInput}>
+                  <Calendar size={16} color="#666666" />
+                  <Text style={styles.inputValue}>Sunday, 8:00 PM</Text>
+                </View>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Trip Type</Text>
+                <View style={styles.modernInput}>
+                  <Text style={styles.inputValue}>Round Trip</Text>
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.jetResults}>
+          <Text style={styles.resultsTitle}>
+            {isRiyadhToParis && isCostEffective ? 'Cost-Effective Options' : 'Available Aircraft'}
+          </Text>
+          
+          {jetOptions.map((jet, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[styles.resultCard, !jet.available && styles.unavailableCard]}
+              onPress={() => jet.available && handleBookingSelect('jet', jet)}
+              disabled={!jet.available}
+            >
+              <View style={styles.resultHeader}>
+                <View>
+                  <Text style={styles.resultName}>{jet.name}</Text>
+                  <Text style={styles.resultCategory}>{jet.category}</Text>
+                  {jet.badge && (
+                    <View style={[styles.jetBadge, 
+                      jet.badge === 'BEST VALUE' && styles.bestValueBadge,
+                      jet.badge === 'EMPTY LEG' && styles.emptyLegBadge,
+                      jet.badge === 'COMFORT' && styles.comfortBadge
+                    ]}>
+                      <Text style={styles.jetBadgeText}>{jet.badge}</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.resultStatus}>
+                  {jet.available ? (
+                    <View style={styles.availableBadge}>
+                      <Text style={styles.availableText}>Available</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.unavailableBadge}>
+                      <Text style={styles.unavailableText}>Booked</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+              
+              <View style={styles.resultSpecs}>
+                <Text style={styles.specText}>{jet.capacity}</Text>
+                <Text style={styles.specDivider}>•</Text>
+                <Text style={styles.specText}>{jet.duration}</Text>
+              </View>
+              
+              <View style={styles.resultFooter}>
+                <Text style={styles.resultPrice}>{jet.price}</Text>
+                {jet.available && (
+                  <View style={styles.selectIndicator}>
+                    <ArrowRight size={16} color="#000000" />
                   </View>
                 )}
               </View>
-            </View>
-            
-            <View style={styles.resultSpecs}>
-              <Text style={styles.specText}>{jet.capacity}</Text>
-              <Text style={styles.specDivider}>•</Text>
-              <Text style={styles.specText}>{jet.duration}</Text>
-            </View>
-            
-            <View style={styles.resultFooter}>
-              <Text style={styles.resultPrice}>{jet.price}</Text>
-              {jet.available && (
-                <View style={styles.selectIndicator}>
-                  <ArrowRight size={16} color="#000000" />
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderYachtSearch = () => (
     <View style={styles.generativeContainer}>
@@ -676,7 +893,10 @@ export default function ChatScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.searchButton}>
+        <TouchableOpacity 
+          style={styles.searchButton}
+          onPress={() => handleQuickAction('Search for luxury yacht charters in the Mediterranean for 8 guests')}
+        >
           <Text style={styles.searchButtonText}>Search Available Yachts</Text>
           <ArrowRight size={16} color="#FFFFFF" />
         </TouchableOpacity>
@@ -766,7 +986,10 @@ export default function ChatScreen() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.searchButton}>
+        <TouchableOpacity 
+          style={styles.searchButton}
+          onPress={() => handleQuickAction('Find luxury villas in Tuscany for 12 guests')}
+        >
           <Text style={styles.searchButtonText}>Search Available Villas</Text>
           <ArrowRight size={16} color="#FFFFFF" />
         </TouchableOpacity>
@@ -1162,6 +1385,383 @@ export default function ChatScreen() {
     );
   };
 
+  const renderTripPlanner = () => {
+    const [selectedTrip, setSelectedTrip] = useState('round-trip');
+    const [destinations, setDestinations] = useState([{ from: '', to: '', date: '' }]);
+
+    const addDestination = () => {
+      setDestinations([...destinations, { from: '', to: '', date: '' }]);
+    };
+
+    return (
+      <View style={styles.generativeContainer}>
+        <View style={styles.conciergeTitle}>
+          <Calendar size={32} color="#6366F1" />
+          <Text style={styles.generativeTitle}>Trip Planner</Text>
+          <Text style={styles.generativeSubtitle}>Plan your multi-destination luxury journey</Text>
+        </View>
+        
+        <View style={styles.tripTypeSelector}>
+          {['round-trip', 'one-way', 'multi-city'].map((type) => (
+            <TouchableOpacity
+              key={type}
+              style={[
+                styles.tripTypeOption,
+                selectedTrip === type && styles.tripTypeOptionSelected
+              ]}
+              onPress={() => setSelectedTrip(type)}
+            >
+              <Text style={[
+                styles.tripTypeText,
+                selectedTrip === type && styles.tripTypeTextSelected
+              ]}>
+                {type.charAt(0).toUpperCase() + type.slice(1).replace('-', ' ')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {destinations.map((dest, index) => (
+          <View key={index} style={styles.destinationRow}>
+            <View style={styles.destinationInputs}>
+              <View style={styles.tripInputGroup}>
+                <Text style={styles.tripInputLabel}>FROM</Text>
+                <View style={styles.tripModernInput}>
+                  <MapPin size={16} color="#6B7280" />
+                  <Text style={styles.tripInputValue}>Select departure</Text>
+                </View>
+              </View>
+              <View style={styles.tripInputGroup}>
+                <Text style={styles.tripInputLabel}>TO</Text>
+                <View style={styles.tripModernInput}>
+                  <MapPin size={16} color="#6B7280" />
+                  <Text style={styles.tripInputValue}>Select destination</Text>
+                </View>
+              </View>
+              <View style={styles.tripInputGroup}>
+                <Text style={styles.tripInputLabel}>DATE</Text>
+                <View style={styles.tripModernInput}>
+                  <Calendar size={16} color="#6B7280" />
+                  <Text style={styles.tripInputValue}>Select date</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        ))}
+
+        {selectedTrip === 'multi-city' && (
+          <TouchableOpacity style={styles.addDestinationButton} onPress={addDestination}>
+            <Text style={styles.addDestinationText}>+ Add Another Destination</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity style={styles.searchButton}>
+          <Text style={styles.searchButtonText}>Search Luxury Options</Text>
+          <ArrowRight size={16} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderDestinationExplorer = () => {
+    const destinations = [
+      { name: 'Dubai', country: 'UAE', image: '🏙️', description: 'Luxury shopping and dining', price: 'From $15,000' },
+      { name: 'Monaco', country: 'France', image: '🏰', description: 'Glamorous Mediterranean escape', price: 'From $25,000' },
+      { name: 'Aspen', country: 'USA', image: '🏔️', description: 'Premium ski resort experience', price: 'From $18,000' },
+      { name: 'Maldives', country: 'Maldives', image: '🏝️', description: 'Private island paradise', price: 'From $30,000' },
+    ];
+
+    return (
+      <View style={styles.generativeContainer}>
+        <View style={styles.titleSection}>
+          <MapPin size={32} color="#6366F1" />
+          <Text style={styles.generativeTitle}>Destination Explorer</Text>
+          <Text style={styles.generativeSubtitle}>Discover exclusive luxury destinations</Text>
+        </View>
+        
+        <View style={styles.destinationGrid}>
+          {destinations.map((dest, index) => (
+            <TouchableOpacity key={index} style={styles.destinationCard}>
+              <Text style={styles.destinationEmoji}>{dest.image}</Text>
+              <Text style={styles.destinationName}>{dest.name}</Text>
+              <Text style={styles.destinationCountry}>{dest.country}</Text>
+              <Text style={styles.destinationDescription}>{dest.description}</Text>
+              <Text style={styles.destinationPrice}>{dest.price}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity style={styles.exploreMoreButton}>
+          <Text style={styles.exploreMoreText}>Explore All Destinations</Text>
+          <ArrowRight size={16} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderBookingStatus = () => {
+    const bookings = [
+      { id: 'JET001', type: 'Private Jet', route: 'Dubai → London', status: 'Confirmed', date: 'Dec 15, 2024', time: '14:30' },
+      { id: 'YCT002', type: 'Yacht Charter', location: 'Monaco', status: 'Pending', date: 'Dec 20, 2024', time: '10:00' },
+      { id: 'VLA003', type: 'Villa Rental', location: 'Aspen', status: 'Hold', date: 'Dec 25, 2024', time: 'Check-in' },
+    ];
+
+    return (
+      <View style={styles.generativeContainer}>
+        <View style={styles.titleSection}>
+          <Clock size={32} color="#6366F1" />
+          <Text style={styles.generativeTitle}>Booking Status</Text>
+          <Text style={styles.generativeSubtitle}>Track your luxury travel bookings</Text>
+        </View>
+        
+        {bookings.map((booking, index) => (
+          <View key={index} style={styles.bookingStatusCard}>
+            <View style={styles.bookingHeader}>
+              <View>
+                <Text style={styles.bookingId}>#{booking.id}</Text>
+                <Text style={styles.bookingType}>{booking.type}</Text>
+              </View>
+              <View style={[
+                styles.statusBadge,
+                booking.status === 'Confirmed' && styles.statusConfirmed,
+                booking.status === 'Pending' && styles.statusPending,
+                booking.status === 'Hold' && styles.statusHold
+              ]}>
+                <Text style={styles.bookingStatusText}>{booking.status}</Text>
+              </View>
+            </View>
+            <Text style={styles.bookingRoute}>{booking.route || booking.location}</Text>
+            <View style={styles.bookingDateTime}>
+              <Text style={styles.bookingDate}>{booking.date}</Text>
+              <Text style={styles.bookingTime}>{booking.time}</Text>
+            </View>
+          </View>
+        ))}
+
+        <TouchableOpacity style={styles.viewAllBookingsButton}>
+          <Text style={styles.viewAllBookingsText}>View All Bookings</Text>
+          <ArrowRight size={16} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderWeatherAlerts = () => {
+    const alerts = [
+      { location: 'London Luton', condition: 'Light Snow', impact: 'Possible 30min delay', severity: 'low' },
+      { location: 'Nice Côte d\'Azur', condition: 'Clear Skies', impact: 'No delays expected', severity: 'none' },
+      { location: 'Aspen Airport', condition: 'Heavy Snow', impact: 'Flights may be cancelled', severity: 'high' },
+    ];
+
+    return (
+      <View style={styles.generativeContainer}>
+        <View style={styles.titleSection}>
+          <Text style={styles.weatherIcon}>🌤️</Text>
+          <Text style={styles.generativeTitle}>Weather & Flight Alerts</Text>
+          <Text style={styles.generativeSubtitle}>Real-time updates for your destinations</Text>
+        </View>
+        
+        {alerts.map((alert, index) => (
+          <View key={index} style={styles.weatherAlertCard}>
+            <View style={styles.alertHeader}>
+              <Text style={styles.alertLocation}>{alert.location}</Text>
+              <View style={[
+                styles.severityIndicator,
+                alert.severity === 'high' && styles.severityHigh,
+                alert.severity === 'low' && styles.severityLow,
+                alert.severity === 'none' && styles.severityNone
+              ]} />
+            </View>
+            <Text style={styles.alertCondition}>{alert.condition}</Text>
+            <Text style={styles.alertImpact}>{alert.impact}</Text>
+          </View>
+        ))}
+
+        <TouchableOpacity style={styles.weatherUpdatesButton}>
+          <Text style={styles.weatherUpdatesText}>Get Real-time Updates</Text>
+          <ArrowRight size={16} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderConciergeServices = () => {
+    const services = [
+      { icon: '🚗', title: 'Ground Transport', description: 'Luxury car service and transfers' },
+      { icon: '🍾', title: 'Catering', description: 'Gourmet meals and premium beverages' },
+      { icon: '🛡️', title: 'Security', description: 'Personal protection and VIP handling' },
+      { icon: '🎭', title: 'Entertainment', description: 'Event tickets and exclusive experiences' },
+      { icon: '🏨', title: 'Accommodation', description: 'Luxury hotels and private residences' },
+      { icon: '💎', title: 'Personal Shopping', description: 'Exclusive shopping and styling services' },
+    ];
+
+    return (
+      <View style={styles.generativeContainer}>
+        <View style={styles.titleSection}>
+          <Star size={32} color="#6366F1" />
+          <Text style={styles.generativeTitle}>Concierge Services</Text>
+          <Text style={styles.generativeSubtitle}>Enhance your luxury travel experience</Text>
+        </View>
+        
+        <View style={styles.servicesGrid}>
+          {services.map((service, index) => (
+            <TouchableOpacity key={index} style={styles.serviceCard}>
+              <Text style={styles.serviceIcon}>{service.icon}</Text>
+              <Text style={styles.serviceTitle}>{service.title}</Text>
+              <Text style={styles.serviceDescription}>{service.description}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity style={styles.requestConciergeButton}>
+          <Text style={styles.requestConciergeText}>Request Concierge Service</Text>
+          <ArrowRight size={16} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderGenerativePrompts = () => {
+    const promptCategories = [
+      {
+        title: "Search",
+        icon: "🔍",
+        prompts: [
+          "I need a private jet from Dubai to London next Friday afternoon for 6 passengers.",
+          "Suggest the most cost-effective jet from Riyadh to Paris for 2 days, returning Sunday night.",
+          "What aircraft can fly nonstop from New York to Dubai with 8 people and 10 large bags?",
+          "I'm flexible by one day—what's the cheapest window from Zurich to Ibiza next week?",
+          "I prefer the quietest cabin for 4 hours—what would you recommend from Milan to Athens?",
+          "Show me options with a stand‑up cabin and Wi‑Fi for a 5-hour flight.",
+          "Which jets allow pets in cabin for a trip from LAX to Aspen this weekend?",
+          "We need a medical kit and onboard oxygen—what aircraft meet that?",
+          "Find eco-friendlier options or SAF availability for a flight Dubai → Geneva.",
+          "Recommend aircraft with a private lavatory and enclosed aft cabin for 7 pax.",
+          "What is the closest suitable airport to Mayfair for a late-night arrival?",
+          "Can we land in St. Moritz directly? If not, what's the best alternate?",
+          "Are there runway or MTOW limits at Mykonos for midsize jets in July?",
+          "Suggest routing with the fewest tech stops from Miami to Jeddah on a super-midsize.",
+          "What are the slot and curfew restrictions at London City for tomorrow?",
+          "Is de-icing likely in Zurich on Friday morning, and what should we budget?",
+          "What are the noise restrictions at Nice for arrivals after 22:00?",
+          "Which airports near Courchevel can handle our jet and luggage profile?"
+        ]
+      },
+      {
+        title: "Pricing",
+        icon: "💰",
+        prompts: [
+          "Give me 3 quotes: light jet, midsize, and super-midsize Dubai → Muscat round trip.",
+          "Break down the quote: flight time, positioning, landing, handling, catering, de-icing.",
+          "How much extra is Wi‑Fi, and is it unlimited?",
+          "What are peak day surcharges this month?",
+          "Can you price shareable empty legs that align with Dubai → Riyadh this week?",
+          "Compare two quotes on hourly rate, fuel surcharge, and crew overnight costs.",
+          "Estimate total with a 2-hour ground hold in Paris and late-night crew duty.",
+          "Can you check tail-specific availability for the 10-seat Gulfstream on Saturday?",
+          "Place a 24-hour tentative hold on Option B and alert me if another request arrives.",
+          "If Option B falls through, auto-switch to Option C at no more than +8% price.",
+          "What's the cancellation policy and change fees by option?"
+        ]
+      },
+      {
+        title: "Cabin",
+        icon: "🛋️",
+        prompts: [
+          "We need kosher meals and a vegan option, plus nut‑free snacks.",
+          "Can you arrange a cake and flowers onboard for a birthday?",
+          "Provide a quiet workspace with power outlets and stable Wi‑Fi—seat plan?",
+          "We have two infants—can you provide bassinets and car-seat guidance?",
+          "What are the alcohol policies, and can we pre‑stock specific wines?",
+          "Is there a flight attendant included? If not, add one.",
+          "Will 8 golf bags and 8 suitcases fit on a midsize jet for 8 pax?",
+          "What are pet travel rules, carriers needed, and paperwork for EU entry?",
+          "Weight and balance concerns: can we still fly nonstop with our luggage load?"
+        ]
+      },
+      {
+        title: "Docs",
+        icon: "📋",
+        prompts: [
+          "What IDs/visas are needed for UK entry on private charter this week?",
+          "Share the passenger manifest template and deadline.",
+          "KYC/AML: where do we securely upload documents and proof of funds?",
+          "Explain APIS/PNR submission timing and responsibilities.",
+          "We're a company—what beneficial ownership details do you need?"
+        ]
+      },
+      {
+        title: "Payment",
+        icon: "💳",
+        prompts: [
+          "Send the contract for Option A and hold the price for 12 hours.",
+          "Can we split payment between corporate card and bank transfer?",
+          "What currency options do you support and FX handling?",
+          "Add travel insurance or trip protection options to the booking.",
+          "Generate pro forma invoice and final tax invoice for accounting."
+        ]
+      },
+      {
+        title: "Ground",
+        icon: "🚗",
+        prompts: [
+          "Arrange chauffeur pickup: Emirates Hills → Al Maktoum, 6 pax, 6 bags.",
+          "Coordinate VIP lounge access and fast-track security where available.",
+          "Add a security detail and airside meet‑and‑assist for arrival.",
+          "Book a helicopter transfer from Nice to Monaco after landing."
+        ]
+      },
+      {
+        title: "Disruptions",
+        icon: "⚠️",
+        prompts: [
+          "Notify me of weather, ATC, or slot changes and propose alternatives.",
+          "If departure is delayed more than 90 minutes, re-cater and adjust ground transport.",
+          "Auto‑rebook to the next best aircraft within +10% if our tail goes tech.",
+          "What's the current ETD/ETA, and send updates to all passengers on WhatsApp.",
+          "Store my preferences: aisle-facing seats, quieter cabin, sparkling water only.",
+          "Summarize trip costs and flight time for records and carbon reporting.",
+          "Recommend loyalty credits or future discounts based on my last 3 trips.",
+          "Propose similar itinerary next month with 3 alternate dates at lower cost."
+        ]
+      }
+    ];
+
+    const handlePromptSelect = (prompt: string) => {
+      setInputText(prompt);
+      sendMessage();
+    };
+
+    return (
+      <View style={styles.generativeContainer}>
+        <View style={styles.titleSection}>
+          <Sparkles size={32} color="#6366F1" />
+          <Text style={styles.generativeTitle}>Quick Assistance</Text>
+          <Text style={styles.generativeSubtitle}>Choose from common requests or ask anything</Text>
+        </View>
+        
+        {promptCategories.map((category, categoryIndex) => (
+          <View key={categoryIndex} style={styles.categorySection}>
+            <Text style={styles.categoryTitle}>{category.icon} {category.title}</Text>
+            <View style={styles.promptChipsContainer}>
+              {category.prompts.map((prompt, promptIndex) => (
+                <TouchableOpacity
+                  key={promptIndex}
+                  style={styles.promptChip}
+                  onPress={() => handlePromptSelect(prompt)}
+                >
+                  <Text style={styles.promptChipText} numberOfLines={2}>
+                    {prompt}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   const renderMessageComponent = (message: Message) => {
     switch (message.component) {
       case 'quick-start':
@@ -1182,6 +1782,8 @@ export default function ChatScreen() {
         return renderPaymentFlow(message.data);
       case 'confirmation':
         return renderConfirmation(message.data);
+      case 'generative-prompts':
+        return renderGenerativePrompts();
       default:
         return null;
     }
@@ -1408,7 +2010,7 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
   },
-  titleSection: {
+  conciergeTitle: {
     alignItems: 'center',
     marginBottom: 24,
   },
@@ -1659,6 +2261,27 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#991B1B',
     fontWeight: '600',
+  },
+  jetBadge: {
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  bestValueBadge: {
+    backgroundColor: '#DCFCE7',
+  },
+  emptyLegBadge: {
+    backgroundColor: '#FEF3C7',
+  },
+  comfortBadge: {
+    backgroundColor: '#DBEAFE',
+  },
+  jetBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#374151',
   },
   yachtLocation: {
     fontSize: 12,
@@ -2157,6 +2780,27 @@ const styles = StyleSheet.create({
     color: '#000000',
     marginBottom: 12,
   },
+  promptChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  promptChip: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    maxWidth: '100%',
+    marginBottom: 8,
+  },
+  promptChipText: {
+    fontSize: 13,
+    color: '#374151',
+    fontWeight: '500',
+    lineHeight: 18,
+  },
   recommendationCard: {
     backgroundColor: '#F8F9FA',
     borderRadius: 16,
@@ -2212,5 +2856,320 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Trip Planner Styles
+  tripTypeSelector: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 4,
+  },
+  tripTypeOption: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  tripTypeOptionSelected: {
+    backgroundColor: '#6366F1',
+  },
+  tripTypeText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  tripTypeTextSelected: {
+    color: '#FFFFFF',
+  },
+  destinationRow: {
+    marginBottom: 16,
+  },
+  destinationInputs: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  tripInputGroup: {
+    flex: 1,
+  },
+  tripInputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  tripModernInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  tripInputValue: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  addDestinationButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addDestinationText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6366F1',
+  },
+  // Destination Explorer Styles
+  destinationGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  destinationCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  destinationEmoji: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  destinationName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  destinationCountry: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  destinationDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  destinationPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+  },
+  exploreMoreButton: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  exploreMoreText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Booking Status Styles
+  bookingStatusCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  bookingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  bookingId: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  bookingType: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  statusConfirmed: {
+    backgroundColor: '#D1FAE5',
+  },
+  statusPending: {
+    backgroundColor: '#FEF3C7',
+  },
+  statusHold: {
+    backgroundColor: '#DBEAFE',
+  },
+  bookingStatusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  bookingRoute: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  bookingDateTime: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  bookingDate: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  bookingTime: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  viewAllBookingsButton: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  viewAllBookingsText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Weather Alerts Styles
+  weatherIcon: {
+    fontSize: 32,
+  },
+  weatherAlertCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  alertHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  alertLocation: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  severityIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  severityHigh: {
+    backgroundColor: '#EF4444',
+  },
+  severityLow: {
+    backgroundColor: '#F59E0B',
+  },
+  severityNone: {
+    backgroundColor: '#10B981',
+  },
+  alertCondition: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 4,
+  },
+  alertImpact: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  weatherUpdatesButton: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  weatherUpdatesText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Concierge Services Styles
+  servicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  serviceCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  serviceIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  serviceTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  serviceDescription: {
+    fontSize: 12,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  requestConciergeButton: {
+    backgroundColor: '#6366F1',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  requestConciergeText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  titleSection: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
 });

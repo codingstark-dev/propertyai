@@ -114,15 +114,15 @@ export default function VillasScreen() {
           </View>
 
           <View style={styles.quickFilters}>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity style={styles.filterButton} onPress={() => console.log('Location filter pressed')}>
               <MapPin size={16} color="#D4AF37" />
               <Text style={styles.filterButtonText}>Location</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity style={styles.filterButton} onPress={() => console.log('Dates filter pressed')}>
               <Calendar size={16} color="#D4AF37" />
               <Text style={styles.filterButtonText}>Dates</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
+            <TouchableOpacity style={styles.filterButton} onPress={() => console.log('Guests filter pressed')}>
               <Users size={16} color="#D4AF37" />
               <Text style={styles.filterButtonText}>Guests</Text>
             </TouchableOpacity>
@@ -135,7 +135,7 @@ export default function VillasScreen() {
               <Text style={styles.sectionTitle}>Popular Destinations</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {destinations.map((destination, index) => (
-                  <TouchableOpacity key={index} style={styles.destinationCard}>
+                  <TouchableOpacity key={index} style={styles.destinationCard} onPress={() => console.log(`Villa destination selected: ${destination}`)}>
                     <Text style={styles.destinationText}>{destination}</Text>
                   </TouchableOpacity>
                 ))}
@@ -146,7 +146,7 @@ export default function VillasScreen() {
               <Text style={styles.sectionTitle}>Villa Categories</Text>
               
               {villaCategories.map((category) => (
-                <TouchableOpacity key={category.id} style={styles.categoryCard}>
+                <TouchableOpacity key={category.id} style={styles.categoryCard} onPress={() => console.log(`Villa category selected: ${category.name}`)}>
                   <View style={styles.categoryHeader}>
                     <Building2 size={24} color="#D4AF37" />
                     <Text style={styles.categoryName}>{category.name}</Text>
@@ -177,7 +177,7 @@ export default function VillasScreen() {
 
                   <View style={styles.categoryFooter}>
                     <Text style={styles.categoryPrice}>{category.priceRange}</Text>
-                    <TouchableOpacity style={styles.viewButton}>
+                    <TouchableOpacity style={styles.viewButton} onPress={() => console.log(`View properties for: ${category.name}`)}>
                       <Text style={styles.viewButtonText}>View Properties</Text>
                     </TouchableOpacity>
                   </View>
@@ -191,12 +191,12 @@ export default function VillasScreen() {
             
             <View style={styles.eventsGrid}>
               {eventTypes.map((event, index) => (
-                <TouchableOpacity key={index} style={styles.eventCard}>
+                <TouchableOpacity key={index} style={styles.eventCard} onPress={() => console.log(`Event card pressed: ${event.name}`)}>
                   <Text style={styles.eventIcon}>{event.icon}</Text>
                   <Text style={styles.eventName}>{event.name}</Text>
                   <Text style={styles.eventDescription}>{event.description}</Text>
                   <View style={styles.eventFooter}>
-                    <TouchableOpacity style={styles.eventButton}>
+                    <TouchableOpacity style={styles.eventButton} onPress={() => console.log(`Plan event pressed: ${event.name}`)}>
                       <Text style={styles.eventButtonText}>Plan Event</Text>
                     </TouchableOpacity>
                   </View>
